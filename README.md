@@ -133,6 +133,12 @@ three standalone Python scripts that read your local Claude Code logs.
 
 ## Notes
 
+- After parking, don't type anything into the **old** session — not even
+  "I'm back". If more than an hour has passed, that one message
+  re-registers the whole conversation, which is exactly the cost parking
+  was meant to avoid. The comeback signal ("resume") belongs in a fresh
+  session. If you did send something by accident, still move to a fresh
+  session for the rest of the work — every later message will be lighter.
 - Neither skill keeps the cache warm. Pinging a session on a timer is
   billed like any other message and saves nothing — the saving comes from
   *not carrying the old conversation into the new session*.

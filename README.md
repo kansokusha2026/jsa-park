@@ -141,6 +141,11 @@ three standalone Python scripts that read your local Claude Code logs.
   them rarely, weigh it.
 - `RESUME.md` lands in your project root and is **easy to commit by
   accident**. Add `RESUME.md` and `RESUME.md.bak` to `.gitignore`.
+- There is one `RESUME.md` per project folder. Parking different
+  projects in parallel is fine — but parking the *same* folder twice
+  moves the previous note to `RESUME.md.bak`, and a third park discards
+  it. Only one backup generation is kept. To resume the older note,
+  restore `RESUME.md.bak` to `RESUME.md` before saying "resume".
 - The note contains work details and file paths, which can include
   credentials or internal URLs. Check the contents before sharing.
 - Not a replacement for `/compact`, `/clear`, or `/resume`. Try the

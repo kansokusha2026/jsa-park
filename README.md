@@ -1,4 +1,4 @@
-# jsa-park — park a heavy Claude Code session before you walk away
+# jsa-park — skills that cut the token cost of long breaks and restarts in Claude Code
 
 Leave a heavy Claude Code session alone for an hour or more and its prompt
 cache expires. The next message you type re-registers the whole

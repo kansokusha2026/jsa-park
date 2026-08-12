@@ -38,9 +38,23 @@ conversation.
    script, the note's stamp, or the sibling folder is missing, skip this
    step silently — never block the resume on it.
 
-5. **Confirm only — do not start.** Ask: "Is this current? Shall I start
+5. **Tidy the session lineage — only where session tools exist.** A
+   resumed session starts from the trigger phrase, so the previous
+   session is often left titled just "再開" / "Resume". If
+   session-management tools are available (a session list plus a
+   rename-session tool, as in the Claude Code desktop app): find the
+   most recent *other* session in the same project directory whose
+   title is still such a generic resume phrase — that is the parked
+   predecessor — and rename it to inherit the lineage title: the most
+   recent non-generic title in the same directory, with a sequence
+   number appended or incremented ("X" → "X(2)" → "X(3)"). The current
+   session cannot rename itself; if the user wants this one renamed
+   too, point them to the session-list UI. In a plain CLI session these
+   tools don't exist — skip this step silently, never mention it.
+
+6. **Confirm only — do not start.** Ask: "Is this current? Shall I start
    with [the next action]?" Begin working only after the user says go.
 
-6. **Do not re-read the previous session's full log.** The note *is* the
+7. **Do not re-read the previous session's full log.** The note *is* the
    handoff; pulling the old conversation back in defeats the purpose.
    If more context is needed, ask the user to point at specific files.

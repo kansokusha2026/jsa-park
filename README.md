@@ -52,6 +52,13 @@ does **not** start working until you say go. Items under *Proposed, not
 approved* are never treated as settled. Resuming this way costs a few
 thousand tokens instead of re-registering the whole previous conversation.
 
+Because every resumed session starts from the trigger phrase, its title
+tends to end up as just "Resume". Where session-management tools exist
+(the Claude Code desktop app), the skill also renames the parked
+predecessor to inherit the original title with a sequence number
+("X" → "X(2)" → "X(3)") — one step behind, since a session cannot rename
+itself. In a plain CLI session this is skipped silently.
+
 ## The savings meter
 
 A saving you can't see is a habit you won't keep. So the skills measure

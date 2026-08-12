@@ -89,6 +89,29 @@ The estimates use model-agnostic rate weights — a 1h-cache write bills at
 roughly 2x the base input rate, a cache read at roughly 0.1x — so no
 prices are assumed and the numbers hold for any Claude model.
 
+## What carries over, and what does not
+
+An LLM has no memory across sessions. Every response is generated from
+the token sequence sent with that one request — the system prompt plus
+the full conversation history. The old session could answer "in
+context" only because that entire history was sent along every time.
+
+The handoff note is a lossy compression of that history. It keeps
+conclusions, open questions, the current position, and the next step;
+it discards the reasoning that led there, the contents of files that
+were read, and the failed attempts. This works in practice because most
+facts are externalized in files — code, notes, Git history — which the
+fresh session can re-read on demand.
+
+What lives in neither files nor logs is the judgment layer: logs record
+operations, not which proposals were approved and which were rejected.
+That is why the note's fill-in fields separate "Decided" from
+"Proposed, not approved". A judgment that was never written down does
+not carry over, and typically resurfaces as the new session
+re-proposing an idea the old one had already rejected. This is also why
+`jsa-resume` waits for your go-ahead before working: so you can catch
+what was lost before it turns into rework.
+
 ## Relation to JSA
 
 [JSA](https://github.com/kansokusha2026/jsa) is the measurement side:

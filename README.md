@@ -85,9 +85,15 @@ estimated savings (rate weights: 1h-cache write x2.0, cache read x0.1):
 Here ~81k tokens of conversation history were replaced by a ~1.5k-token
 handoff note; what remains is mostly the fixed per-session cost (system
 prompt, tools, project instructions), which every session pays anyway.
-The estimates use model-agnostic rate weights — a 1h-cache write bills at
-roughly 2x the base input rate, a cache read at roughly 0.1x — so no
-prices are assumed and the numbers hold for any Claude model.
+
+The estimates are in input-token equivalents rather than money, so no
+prices are assumed: a 1h cache write bills at roughly 2x the base input
+rate, and a cache read at roughly 0.1x on most models. Cache-read rates
+aren't uniform, though — Claude Fable 5.1 reads at 0.025x — so the meter
+takes the model out of the transcript and names the weight it used in the
+report. Pass `--cache-read-rate` or `--cache-write-rate` to override
+either one, for example if you're on the five-minute cache TTL, where a
+write bills at 1.25x instead of 2x.
 
 ## What carries over, and what does not
 

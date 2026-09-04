@@ -112,6 +112,44 @@ re-proposing an idea the old one had already rejected. This is also why
 `jsa-resume` waits for your go-ahead before working: so you can catch
 what was lost before it turns into rework.
 
+## Compared with the built-in resume and compaction
+
+Claude Code has its own ways to shorten a long history: `/compact`
+replaces the conversation with a summary, and on a Pro or Max plan,
+resuming a large session after a long break offers to continue from a
+summary so later requests don't carry the full history. Reach for those
+first if they fit. This project isn't trying to replace them.
+
+Two differences are worth knowing before you choose.
+
+### Summarizing costs the most at the moment you need it
+
+Building a summary means reading the whole history. While the cache is
+warm that's cheap, but after a break longer than the cache lifetime
+there's no cache left to read, so the summarization request reprocesses
+the whole history as uncached input. That's exactly when you reach for it:
+coming back to an old session. The conversation is long because you were
+away, and it costs the most to summarize *because* you were away.
+`jsa-park` moves that work to *before* the break, while the cache is still
+warm and the conversation is still in context.
+
+### A generated summary keeps what you did, not what you decided
+
+It's built from the transcript, and a transcript records operations. It
+shows what was tried, edited and run. It doesn't mark which proposals you
+approved and which you turned down, because a rejected plan leaves the
+same trace as an accepted one: you discussed it.
+
+Lose that distinction and the next session confidently re-proposes
+something you already considered and rejected, so you explain it and turn
+it down a second time. Of everything a handoff drops, this is the most
+expensive.
+
+`jsa-park` keeps *Decided* and *Proposed, not approved* as separate fields
+and asks you to check exactly one question before saving: is anything
+under *Decided* actually still just a proposal? An automatic summary has
+no such gate.
+
 ## Relation to JSA
 
 [JSA](https://github.com/kansokusha2026/jsa) is the measurement side:
@@ -139,9 +177,14 @@ three standalone Python scripts that read your local Claude Code logs.
   was meant to avoid. The comeback signal ("resume") belongs in a fresh
   session. If you did send something by accident, still move to a fresh
   session for the rest of the work — every later message will be lighter.
-- Neither skill keeps the cache warm. Pinging a session on a timer is
-  billed like any other message and saves nothing — the saving comes from
-  *not carrying the old conversation into the new session*.
+- Neither skill keeps the cache warm. Keeping it alive on a timer does
+  work: a keep-alive re-send bills at the cache-read rate rather than the
+  full input rate, so on models with cheap cache reads it can undercut a
+  cold restart for a fairly long break. It never undercuts parking,
+  though. Pinging pays, over and over, to *preserve* the conversation that
+  parking simply stops carrying, and the bill grows with every hour you
+  stay away. The saving here comes from *not carrying the old conversation
+  into the new session*.
 - The skills add their trigger descriptions to every session's fixed cost.
   It's small (well under a thousand tokens for the pair), but if you use
   them rarely, weigh it.

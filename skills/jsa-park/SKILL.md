@@ -23,10 +23,13 @@ Respond, and write RESUME.md, in the language of the conversation
 First determine (from what the user said, or by asking once): will they be
 back within about 1 hour?
 
-- **Back within ~1 hour** → parking is usually not worth it. The prompt
-  cache typically survives short breaks, and continuing the same session
-  costs mostly cheap cache reads. Say so, and stop — unless the user
-  explicitly wants to park anyway.
+- **Back within ~1 hour** → parking is usually not worth it. On a Claude
+  subscription within plan usage, Claude Code asks for the one-hour cache
+  TTL, so the cache typically survives short breaks and continuing the
+  same session costs mostly cheap cache reads. Say so, and stop — unless
+  the user explicitly wants to park anyway. (On an API key, usage credits,
+  or a cloud provider the default TTL is five minutes, so the threshold
+  worth parking at is much shorter.)
 - **Longer than ~1 hour, overnight, unknown, or a usage-limit lockout** →
   proceed. After a long gap the cache has expired, and the next message in
   this session would re-register the whole conversation (hundreds of
@@ -107,7 +110,11 @@ Tell the user, plainly:
 
 ## What this skill deliberately does not do
 
-- Keep the cache warm with periodic pings — every ping is billed, so
-  nothing is saved.
+- Keep the cache warm with periodic pings. A keep-alive re-send bills at
+  the cache-read rate rather than the full input rate, so on models with
+  cheap cache reads it can undercut a cold restart for a fairly long
+  break. It never undercuts parking, though: pinging pays repeatedly to
+  *preserve* the context that parking stops carrying, and the bill grows
+  with every hour away.
 - Detect your absence automatically — invoke it *before* you leave.
 - Close the session for you.

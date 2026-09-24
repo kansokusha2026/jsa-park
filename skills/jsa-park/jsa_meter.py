@@ -22,7 +22,7 @@ it, the newest transcript for the current directory is used.
 
 The report is in "input-token equivalents" (eq), not money: a 1h cache
 write costs about 2.0x the base input rate, and a cache read about 0.1x
-on most models but 0.025x on Claude Fable 5.1. The read weight is taken
+on most models but 0.05x on Claude Opus 5.5 and 0.025x on Claude Fable 5.1. The read weight is taken
 from the model the fresh session is actually using, read out of the
 transcript. Override either weight with --cache-read-rate /
 --cache-write-rate. No prices are assumed.
@@ -41,12 +41,14 @@ from pathlib import Path
 WRITE_1H = 2.0
 
 # Cache reads are ~0.1x base input on most models. Claude Fable 5.1 reads
-# at 0.025x ($0.25 per MTok against $10 input), which moves the estimate
-# enough to be worth detecting rather than assuming. Keyed by exact model
+# at 0.025x ($0.25 per MTok against $10 input) and Claude Opus 5.5 at 0.05x
+# ($0.20 against $4), which moves the estimate enough to be worth detecting
+# rather than assuming. Keyed by exact model
 # id; anything absent falls back to READ_DEFAULT and says so in the report.
 READ_DEFAULT = 0.1
 READ_BY_MODEL = {
     "claude-fable-5-1": 0.025,
+    "claude-opus-5-5": 0.05,
 }
 
 STAMP_RE = re.compile(r"<!--\s*jsa-park-meter:\s*(\{.*?\})\s*-->", re.S)

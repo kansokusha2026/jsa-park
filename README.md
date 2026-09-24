@@ -91,7 +91,7 @@ prompt, tools, project instructions), which every session pays anyway.
 The estimates are in input-token equivalents rather than money, so no
 prices are assumed: a 1h cache write bills at roughly 2x the base input
 rate, and a cache read at roughly 0.1x on most models. Cache-read rates
-aren't uniform, though — Claude Fable 5.1 reads at 0.025x — so the meter
+aren't uniform, though — Claude Opus 5.5 reads at 0.05x and Claude Fable 5.1 at 0.025x — so the meter
 takes the model out of the transcript and names the weight it used in the
 report. Pass `--cache-read-rate` or `--cache-write-rate` to override
 either one, for example if you're on the five-minute cache TTL, where a

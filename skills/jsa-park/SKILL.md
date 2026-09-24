@@ -80,15 +80,23 @@ resumed session goes wrong, and it is the reason the two fields exist.
 
 ## Step 3 — write, with backup, and stamp for the meter
 
-Write the note to `RESUME.md` in the project root. If one already exists,
-rename it to `RESUME.md.bak` first (one generation kept, same convention
-as the CLI).
+Write the note to `RESUME.md` in the folder the work belongs to: the
+directory Claude Code was started in, or — when the session worked inside
+one subproject of it (a package in a monorepo, a project folder in a
+notes vault) — that subproject's folder. Use an absolute path. If a
+`RESUME.md` already exists there, rename it to `RESUME.md.bak` first (one
+generation kept, same convention as the CLI).
 
-Then stamp the note so the savings can be measured at resume time:
+Then stamp the note, passing that same absolute path:
 
 ```bash
-python3 "<this skill's base directory>/jsa_meter.py" park --write
+python3 "<this skill's base directory>/jsa_meter.py" park --write --resume-file "<absolute path to RESUME.md>"
 ```
+
+Besides the stamp, this records where the note was written (in
+`~/.claude/jsa-park/notes.json`), so a fresh session started in the launch
+directory finds it even when it sits in a subfolder. Report the note's
+full path to the user.
 
 The stamp records this session's final context size (read locally from
 `~/.claude/projects/`; nothing leaves the machine). At resume time,
@@ -102,9 +110,11 @@ Tell the user, plainly:
 
 - This session can now be closed. Continuing to type here after a long
   break would rewrite the whole conversation.
-- To resume: open a fresh session in this folder and say
-  "再開します" / "resume" (with `jsa-resume` installed), or paste:
-  *"Read RESUME.md and confirm its contents first. Do not start working yet."*
+- To resume: open a fresh session in the folder Claude Code was started
+  in (not the subfolder the note may sit in) and say "再開します" /
+  "resume" (with `jsa-resume` installed), or paste:
+  *"Read <full path to RESUME.md> and confirm its contents first. Do not
+  start working yet."*
 - Don't commit `RESUME.md` by accident — keep it (and `RESUME.md.bak`)
   in `.gitignore`.
 

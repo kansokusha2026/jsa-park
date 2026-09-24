@@ -6,10 +6,19 @@ Reads local Claude Code transcripts (~/.claude/projects/) only.
 No network access, no dependencies beyond the standard library.
 
 Modes:
-  park     Stamp RESUME.md with the parked session's final context size.
+  park     Stamp RESUME.md with the parked session's final context size,
+           and record where the note was written.
            Run from inside the session being parked (jsa-park, step 3).
+  locate   Print the path of the note parked from this launch directory
+           (jsa-resume, step 1). The note may live in a subfolder — a
+           monorepo package, a vault project — not only in the folder
+           Claude Code was started in.
   resume   Compare that stamp against the fresh session's cold start and
            print a savings report (jsa-resume shows it to the user).
+
+Sessions are identified by CLAUDE_CODE_SESSION_ID when Claude Code sets
+it, so a `cd` earlier in the session does not change the answer; without
+it, the newest transcript for the current directory is used.
 
 The report is in "input-token equivalents" (eq), not money: a 1h cache
 write costs about 2.0x the base input rate, and a cache read about 0.1x
@@ -22,6 +31,7 @@ transcript. Override either weight with --cache-read-rate /
 import argparse
 import datetime
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -41,11 +51,22 @@ READ_BY_MODEL = {
 
 STAMP_RE = re.compile(r"<!--\s*jsa-park-meter:\s*(\{.*?\})\s*-->", re.S)
 
+PROJECTS = Path.home() / ".claude" / "projects"
+# Where each launch directory's last note was written, keyed by the
+# transcript folder name. Local only, like everything else here.
+REGISTRY = Path.home() / ".claude" / "jsa-park" / "notes.json"
+NOTE_NAME = "RESUME.md"
+# Fallback search when the registry has no entry (notes parked before
+# the registry existed): how deep to look, and what not to walk into.
+SEARCH_DEPTH = 6
+SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__",
+             ".obsidian", ".trash"}
+
 
 def project_dir(cwd: Path) -> Path:
     """Map a working directory to its Claude Code transcript folder."""
     munged = re.sub(r"[^A-Za-z0-9]", "-", str(cwd.resolve()))
-    return Path.home() / ".claude" / "projects" / munged
+    return PROJECTS / munged
 
 
 def session_files(pdir: Path):
@@ -100,15 +121,112 @@ def fmt(n):
     return f"{n:,.0f}"
 
 
-def find_current_session(pdir: Path):
+def find_current_session():
+    """This session's transcript.
+
+    Prefer the session id Claude Code exports, which stays right even
+    after the shell has cd'd elsewhere; fall back to the newest transcript
+    for the current directory.
+    """
+    sid = os.environ.get("CLAUDE_CODE_SESSION_ID")
+    if sid:
+        hits = sorted(PROJECTS.glob(f"*/{sid}.jsonl"),
+                      key=lambda p: p.stat().st_mtime)
+        if hits:
+            return hits[-1]
+    pdir = project_dir(Path.cwd())
     files = session_files(pdir)
     if not files:
         sys.exit(f"jsa_meter: no transcripts found under {pdir}")
     return files[-1]
 
 
+def read_stamp(note: Path):
+    try:
+        m = STAMP_RE.search(note.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError):
+        return None
+    if not m:
+        return None
+    try:
+        return json.loads(m.group(1))
+    except ValueError:
+        return None
+
+
+def load_registry():
+    try:
+        return json.loads(REGISTRY.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def save_registry(reg):
+    REGISTRY.parent.mkdir(parents=True, exist_ok=True)
+    tmp = REGISTRY.with_suffix(".tmp")
+    tmp.write_text(json.dumps(reg, ensure_ascii=False, indent=2) + "\n",
+                   encoding="utf-8")
+    tmp.replace(REGISTRY)
+
+
+def search_notes(root: Path):
+    """Every RESUME.md under root, down to SEARCH_DEPTH levels."""
+    root_depth = len(root.parts)
+    for dirpath, dirnames, filenames in os.walk(root):
+        here = Path(dirpath)
+        if len(here.parts) - root_depth >= SEARCH_DEPTH:
+            dirnames[:] = []
+        else:
+            dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+        if NOTE_NAME in filenames:
+            yield here / NOTE_NAME
+
+
+def locate_note(pdir: Path, root: Path):
+    """(note, how) for the note parked from the launch directory of pdir.
+
+    1. the registry entry written by `park --write`;
+    2. otherwise the newest stamped RESUME.md under root whose parked
+       session belongs to this launch directory (notes parked before the
+       registry existed);
+    3. otherwise an unstamped RESUME.md in root itself (a note built by
+       jsa_handoff.py after the fact).
+    """
+    entry = load_registry().get(pdir.name)
+    if entry:
+        note = Path(entry["note"])
+        if note.is_file() and read_stamp(note):
+            return note, "registry"
+    found = []
+    for note in search_notes(root):
+        stamp = read_stamp(note)
+        if stamp and (pdir / f"{stamp.get('session')}.jsonl").exists():
+            found.append((stamp.get("parked_at", ""), note))
+    if found:
+        found.sort()
+        return found[-1][1], "search"
+    plain = root / NOTE_NAME
+    if plain.is_file():
+        return plain, "unstamped"
+    return None, None
+
+
+def cmd_locate(args):
+    current = find_current_session()
+    note, how = locate_note(current.parent, Path.cwd())
+    if note is None:
+        sys.exit(f"jsa_meter: no {NOTE_NAME} parked from this launch directory")
+    print(note.resolve())
+    if how == "search":
+        print(f"(found by searching {Path.cwd()}; it will be recorded at the "
+              f"next park)", file=sys.stderr)
+    elif how == "unstamped":
+        print("(no park stamp — built by jsa_handoff.py, or not a jsa-park "
+              "note; check what it is before trusting it)", file=sys.stderr)
+
+
 def cmd_park(args):
-    current = find_current_session(project_dir(Path.cwd()))
+    current = find_current_session()
     us = usages(current)
     if not us:
         sys.exit(f"jsa_meter: no usage records in {current.name}")
@@ -132,24 +250,40 @@ def cmd_park(args):
             sys.exit(f"jsa_meter: {note} not found — write RESUME.md first, then stamp it")
         text = STAMP_RE.sub("", note.read_text(encoding="utf-8")).rstrip("\n")
         note.write_text(text + "\n\n" + line + "\n", encoding="utf-8")
-        print(f"stamp written to {note}")
+        print(f"stamp written to {note.resolve()}")
+        # Record the location, so a fresh session started in the launch
+        # directory finds a note that was written in a subfolder.
+        try:
+            reg = load_registry()
+            reg[current.parent.name] = {"note": str(note.resolve()),
+                                        "session": current.stem,
+                                        "parked_at": stamp["parked_at"]}
+            save_registry(reg)
+            print(f"location recorded in {REGISTRY}")
+        except OSError as e:
+            print(f"jsa_meter: could not record the location ({e}); "
+                  f"jsa-resume will fall back to searching", file=sys.stderr)
     else:
         print("append this line to RESUME.md (or re-run with --write):")
         print(line)
 
 
 def cmd_resume(args):
-    note = Path(args.resume_file)
+    current = find_current_session()
+    if args.resume_file:
+        note = Path(args.resume_file)
+    else:
+        note, _ = locate_note(current.parent, Path.cwd())
+        if note is None:
+            sys.exit(f"jsa_meter: no {NOTE_NAME} parked from this launch directory")
     if not note.exists():
         sys.exit(f"jsa_meter: {note} not found")
-    m = STAMP_RE.search(note.read_text(encoding="utf-8"))
-    if not m:
+    stamp = read_stamp(note)
+    if not stamp:
         print("jsa_meter: no park stamp in the note — nothing to compare. "
               "(Notes built by jsa_handoff.py, or parked before the meter "
               "existed, have no stamp.)")
         return
-    stamp = json.loads(m.group(1))
-    current = find_current_session(project_dir(Path.cwd()))
     if current.stem == stamp["session"]:
         print("jsa_meter: this IS the parked session — the meter only makes "
               "sense from a fresh session. Nothing to compare.")
@@ -231,8 +365,12 @@ def main():
     p.add_argument("--write", action="store_true",
                    help="append the stamp to the note (default: print only)")
     p.set_defaults(func=cmd_park)
+    loc = sub.add_parser("locate", help="print the path of the note parked "
+                                        "from this launch directory")
+    loc.set_defaults(func=cmd_locate)
     r = sub.add_parser("resume", help="print the savings report for a fresh session")
-    r.add_argument("--resume-file", default="RESUME.md")
+    r.add_argument("--resume-file", default=None,
+                   help="the note to compare against (default: as `locate`)")
     r.add_argument("--cache-read-rate", type=rate_arg, default=None, metavar="X",
                    help="cache-read weight vs base input (default: per model, "
                         f"{READ_DEFAULT} if unknown)")

@@ -46,7 +46,9 @@ Invoke it with `/jsa-park`, or just tell Claude you're stepping away.
 ## How `jsa-resume` works
 
 Open a fresh session in the same folder and say **"resume"** (or
-`/jsa-resume`). The skill finds `RESUME.md`, checks its date, reports
+`/jsa-resume`). The skill finds `RESUME.md` — even when it was written inside a
+subfolder, such as one package of a monorepo, because the meter records
+where each note was parked — checks its date, reports
 Goal / Decided / Proposed / Next action, shows the savings meter — and
 does **not** start working until you say go. Items under *Proposed, not
 approved* are never treated as settled. Resuming this way costs a few
@@ -194,7 +196,7 @@ three standalone Python scripts that read your local Claude Code logs.
 - The skills add their trigger descriptions to every session's fixed cost.
   It's small (well under a thousand tokens for the pair), but if you use
   them rarely, weigh it.
-- `RESUME.md` lands in your project root and is **easy to commit by
+- `RESUME.md` lands in your project folder and is **easy to commit by
   accident**. Add `RESUME.md` and `RESUME.md.bak` to `.gitignore`.
 - There is one `RESUME.md` per project folder. Parking different
   projects in parallel is fine — but parking the *same* folder twice

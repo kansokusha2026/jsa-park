@@ -9,8 +9,23 @@ Part of jsa-park (https://github.com/kansokusha2026/jsa-park).
 Counterpart of the `jsa-park` skill. Respond in the language of the
 conversation.
 
-1. **Find the note.** Look for `RESUME.md` in the current project root.
-   If it is missing, say so and suggest building one from the last
+1. **Find the note — ask the meter, don't guess.** The note is not
+   necessarily in the folder this session started in: `jsa-park` may have
+   written it inside a subproject. Run:
+
+   ```bash
+   python3 "<this skill's base directory>/../jsa-park/jsa_meter.py" locate
+   ```
+
+   It prints the absolute path of the note parked from this launch
+   directory (from the location recorded at park time, or by searching
+   for a stamped `RESUME.md` belonging to this directory's sessions).
+   Read that file. If it adds that the note has no park stamp, look at
+   what the file actually is before treating it as a handoff — a
+   `RESUME.md` with some other purpose may be sitting there. Only if the
+   script is missing, fall back to `RESUME.md` in the current folder.
+
+   If no note is found, say so and suggest building one from the last
    session's log:
    `python3 /path/to/jsa/jsa_handoff.py -o RESUME.md`
    — then stop.
@@ -31,7 +46,8 @@ conversation.
    python3 "<this skill's base directory>/../jsa-park/jsa_meter.py" resume
    ```
 
-   (the script ships in the sibling `jsa-park` skill folder). Relay its
+   (the script ships in the sibling `jsa-park` skill folder; it finds
+   the same note as `locate`). Relay its
    report in the conversation's language: old context vs. fresh start,
    percentage shed, and the per-restart / per-message estimates. Seeing
    the number each time is what makes the parking habit stick. If the
